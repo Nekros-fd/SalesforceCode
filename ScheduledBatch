@@ -1,0 +1,30 @@
+public class Notify implements Schedulable{
+  public void execute(SchedulableContext ctx) {
+        List<Contact> listOfContact = [SELECT Id,OwnerId,Name,Birthdate FROM Contact WHERE Birthdate !=NULL];
+        List<Id> uniqueContactOwnersId = new List<Id>();
+      String messageBodiText = 'Here is a list of contacts turning 18 in 3 month:\n';
+        
+        for(Contact cnt:listOfContact){
+            if(!uniqueContactOwnersId.contains(cnt.OwnerId)){
+                 uniqueContactOwnersId.add(cnt.OwnerId);
+            }
+            if(Date.today()==cnt.Birthdate.addMonths(213)){
+                messageBodiText+='\n' + cnt.Name + ' - ' + cnt.Birthdate;
+            }
+        }
+      
+        String[] toAddresses = new String[]{'kostetskyirostyslav@gmail.com'};
+        
+        List<Messaging.SingleEmailMessage> mailList = new List<Messaging.SingleEmailMessage>();
+      
+        Messaging.SingleEmailMessage message = new Messaging.SingleEmailMessage();
+        message.subject = 'Contacts Turning 18';
+        message.setPlainTextBody(messageBodiText);
+    message.setToAddresses(toAddresses);
+        message.setSaveAsActivity(False);
+        mailList.add(message);      
+        if(!mailList.isEmpty()){
+            Messaging.sendEmail(mailList);
+        }
+    }
+}
