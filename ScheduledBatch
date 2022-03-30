@@ -1,7 +1,7 @@
 global class NotifyContactOwner implements Database.Batchable<Contact>{
     
     global Iterable<Contact> start(Database.BatchableContext bc){
-        List<Contact> listOfContact = [SELECT Id,OwnerId,Name,Birthdate FROM Contact WHERE Birthdate != NULL AND Birthdate != TODAY];
+        List<Contact> listOfContact = [SELECT Id,OwnerId,Owner.Email,Name,Birthdate FROM Contact WHERE Birthdate != NULL AND Birthdate != TODAY];
         return listOfContact;
     }
    	
