@@ -1,30 +1,44 @@
-public class Notify implements Schedulable{
-  public void execute(SchedulableContext ctx) {
-        List<Contact> listOfContact = [SELECT Id,OwnerId,Name,Birthdate FROM Contact WHERE Birthdate !=NULL];
-        List<Id> uniqueContactOwnersId = new List<Id>();
-      String messageBodiText = 'Here is a list of contacts turning 18 in 3 month:\n';
-        
-        for(Contact cnt:listOfContact){
-            if(!uniqueContactOwnersId.contains(cnt.OwnerId)){
-                 uniqueContactOwnersId.add(cnt.OwnerId);
+global class NotifyContactOwner implements Database.Batchable<Contact>{
+    
+    global Iterable<Contact> start(Database.BatchableContext bc){
+        List<Contact> listOfContact = [SELECT Id,OwnerId,Name,Birthdate FROM Contact WHERE Birthdate != NULL AND Birthdate != TODAY];
+        return listOfContact;
+    }
+   	
+    global void execute(Database.BatchableContext bc, List<Contact> lstOfCnt){
+        Map<Id,String> uniqueContactMessage = new Map<Id,String>();
+        Map<Id,String[]> ownerEmail = new Map<Id,String[]>();
+        for(Contact cnt:lstOfCnt){
+            if(!uniqueContactMessage.containsKey(cnt.OwnerId)){
+                uniqueContactMessage.put(cnt.OwnerId,'Here is a list of contacts turning 18 in 3 month:\n');
+                ownerEmail.put(cnt.OwnerId,new List<String>{cnt.Owner.Email});
             }
             if(Date.today()==cnt.Birthdate.addMonths(213)){
-                messageBodiText+='\n' + cnt.Name + ' - ' + cnt.Birthdate;
+                uniqueContactMessage.put(cnt.OwnerId,uniqueContactMessage.get(cnt.OwnerId)+'\n' + cnt.Name + ' - ' + cnt.Birthdate);
             }
         }
-      
-        String[] toAddresses = new String[]{'kostetskyirostyslav@gmail.com'};
         
-        List<Messaging.SingleEmailMessage> mailList = new List<Messaging.SingleEmailMessage>();
-      
-        Messaging.SingleEmailMessage message = new Messaging.SingleEmailMessage();
-        message.subject = 'Contacts Turning 18';
-        message.setPlainTextBody(messageBodiText);
-    message.setToAddresses(toAddresses);
-        message.setSaveAsActivity(False);
-        mailList.add(message);      
-        if(!mailList.isEmpty()){
-            Messaging.sendEmail(mailList);
-        }
+        List<Messaging.SingleEmailMessage> mail = new List<Messaging.SingleEmailMessage>();
+        
+		for(Id ids:uniqueContactMessage.keySet()){
+			Messaging.SingleEmailMessage maileach = new Messaging.SingleEmailMessage();
+            maileach.setToAddresses(ownerEmail.get(ids));
+			maileach.setSubject('Contacts turning 18.');
+			maileach.setPlainTextBody(uniqueContactMessage.get(ids));
+			mail.add(maileach);
+		}
+		Messaging.SendEmailResult[] result = Messaging.sendEmail(mail);
+    }
+    
+    global void finish(Database.BatchableContext sc){
+        System.debug(sc);
+    }
+}
+
+
+global class NotifyContactOwnerSchedule implements Schedulable{
+	global void execute(SchedulableContext dc){ 
+ 		NotifyContactOwner sendNotify = new NotifyContactOwner();
+    	Database.executeBatch(sendNotify,1);
     }
 }
