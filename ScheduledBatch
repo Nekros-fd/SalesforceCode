@@ -20,13 +20,15 @@ global class NotifyContactOwner implements Database.Batchable<Contact>{
         
         List<Messaging.SingleEmailMessage> mail = new List<Messaging.SingleEmailMessage>();
         
-		for(Id ids:uniqueContactMessage.keySet()){
-			Messaging.SingleEmailMessage maileach = new Messaging.SingleEmailMessage();
-            maileach.setToAddresses(ownerEmail.get(ids));
+	for(Id ids:uniqueContactMessage.keySet()){
+		if(uniqueContactMessage.get(ids)!='Here is a list of contacts turning 18 in 3 month:\n'){
+               		Messaging.SingleEmailMessage maileach = new Messaging.SingleEmailMessage();
+            		maileach.setToAddresses(ownerEmail.get(ids));
 			maileach.setSubject('Contacts turning 18.');
 			maileach.setPlainTextBody(uniqueContactMessage.get(ids));
-			mail.add(maileach);
-		}
+			mail.add(maileach); 
+            	}
+	}
 		Messaging.SendEmailResult[] result = Messaging.sendEmail(mail);
     }
     
